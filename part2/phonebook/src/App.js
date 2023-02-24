@@ -4,12 +4,15 @@ import personService from "./services/persons";
 import PersonForm from "./components/PersonForm";
 import Persons from "./components/Persons";
 import Filter from "./components/Filter";
+import Notification from "./components/Notification";
 
 const App = () => {
   const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
-  const [newFilter, setNewFilter] = useState("")
+  const [newFilter, setNewFilter] = useState("");
+  const [successfulMessage, setSuccessfulMessage] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   useEffect(() => {
    personService
@@ -31,20 +34,27 @@ const App = () => {
 
   const addPerson = (event) => {
     event.preventDefault();
-    let exists = persons.filter((p) => p.name === newName)
+    let personExists = persons.filter((p) => p.name === newName.trim())
 
-    if (exists.length !== 0 && newNumber !== ''){
+    if (personExists.length !== 0 && newNumber !== '' && newNumber !== personExists[0].number){
       if (window.confirm(` ${newName} is already added to phonebook, replace the old number with a new one?`)){
-      const changedPerson = {...exists[0], number: newNumber}
+      const changedPerson = {...personExists[0], number: newNumber}
       personService
-      .update(exists[0].id, changedPerson)
+      .update(personExists[0].id, changedPerson)
       .then(returnedPerson => {
-        setPersons(persons.map(p => p.id !== exists[0].id ? p : returnedPerson ))
+        setPersons(persons.map(p => p.id !== personExists[0].id ? p : returnedPerson ))
       })
+      .catch(error => {
+        setErrorMessage(
+          `Person ${personExists[0].name} was already removed from the server`
+        )
+      })
+      setSuccessfulMessage(`${newName} 's number updated` )
+      setTimeout(()=> {
+        setSuccessfulMessage(null)
+      }, 3000)
     }
-    }
-
-    if (exists.length === 0 && newNumber !== '') {
+    }else if (personExists.length === 0 && newNumber !== '') {
       const p = {
         name: newName,
         number: newNumber
@@ -57,15 +67,18 @@ const App = () => {
         setNewName("");
         setNewNumber("");
       })
+      setSuccessfulMessage(`Added ${newName}`)
 
     } else {
-      alert(`${newName} is already added to phonebook, choose another name`);
+      alert(`${newName} is already added to phonebook or he or she already has that number or number is empty`);
     }
   };
 
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={successfulMessage} type='good'/>
+      <Notification message={errorMessage} type='bad'/>
       <Filter newFilter={newFilter} handleFilterChange={handleFilterChange}/>
       <h2>add a new</h2>
       <PersonForm 
@@ -77,7 +90,7 @@ const App = () => {
       ></PersonForm>
   
       <h2>Numbers</h2>
-      <Persons persons={persons} newFilter={newFilter} setPersons={setPersons}/>
+      <Persons persons={persons} newFilter={newFilter} setPersons={setPersons} setErrorMessage={setErrorMessage}/>
     </div>
   );
 };

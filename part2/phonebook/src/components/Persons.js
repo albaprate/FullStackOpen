@@ -1,6 +1,6 @@
 import personService from '../services/persons'
 
-const Persons = ({persons, newFilter, setPersons}) => {
+const Persons = ({persons, newFilter, setPersons, setErrorMessage}) => {
 
   const personsToShow = persons.filter(p => {
     const person = p.name.toLowerCase().includes(newFilter.toLowerCase())
@@ -13,7 +13,12 @@ const Persons = ({persons, newFilter, setPersons}) => {
     if (window.confirm(`Delete ${name} ?`)){
       personService
       .remove(id)
-      setPersons(persons.filter((p) => p.id !== id))
+      .then(() => setPersons(persons.filter((p) => p.id !== id)))
+      .catch(error => {
+        setErrorMessage(
+          `Person ${name} was already removed from the server`
+        )
+      })
     }
   }
 
