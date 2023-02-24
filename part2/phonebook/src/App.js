@@ -1,13 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import personService from "./services/persons";
+
+import PersonForm from "./components/PersonForm";
+import Persons from "./components/Persons";
+import Filter from "./components/Filter";
 
 const App = () => {
-  const [persons, setPersons] = useState(
-    [{ name: "Arto Hellas" }] 
-  );
+  const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
   const [newFilter, setNewFilter] = useState("")
-  const [showAll, setShowAll] = useState(true)
+
+  useEffect(() => {
+   personService
+   .getAll()
+   .then(response => setPersons(response))
+  }, []);
 
   const handleNameChange = (event) => {
     setNewName(event.target.value);
@@ -19,60 +27,57 @@ const App = () => {
 
   const handleFilterChange = (event) => {
     setNewFilter(event.target.value)
-    setShowAll(false)
   }
 
   const addPerson = (event) => {
     event.preventDefault();
+    let exists = persons.filter((p) => p.name === newName)
 
-    let exists = persons.filter((p) => {
-      return p.name === newName;
-    });
+    if (exists.length !== 0 && newNumber !== ''){
+      if (window.confirm(` ${newName} is already added to phonebook, replace the old number with a new one?`)){
+      const changedPerson = {...exists[0], number: newNumber}
+      personService
+      .update(exists[0].id, changedPerson)
+      .then(returnedPerson => {
+        setPersons(persons.map(p => p.id !== exists[0].id ? p : returnedPerson ))
+      })
+    }
+    }
 
-    if (exists.length === 0) {
+    if (exists.length === 0 && newNumber !== '') {
       const p = {
-        id: persons.length + 1,
         name: newName,
         number: newNumber
-     
       };
-      setPersons(persons.concat(p));
-      setNewName("");
-      setNewNumber("");
-      setShowAll(true)
+
+      personService
+      .create(p)
+      .then(response => {
+        setPersons(persons.concat(response))
+        setNewName("");
+        setNewNumber("");
+      })
+
     } else {
-      alert(`${newName} is already added to phonebook`);
+      alert(`${newName} is already added to phonebook, choose another name`);
     }
   };
-
-  const peopleToShow = showAll
-    ? persons
-    : persons.filter( (p) => p.name.indexOf(newFilter) > -1)
 
   return (
     <div>
       <h2>Phonebook</h2>
-      <div>
-        filter shown with <input value={newFilter} onChange={handleFilterChange}></input>
-      </div>
+      <Filter newFilter={newFilter} handleFilterChange={handleFilterChange}/>
       <h2>add a new</h2>
-      <form onSubmit={addPerson}>
-        <div>
-          name: <input value={newName} onChange={handleNameChange} />
-        </div>
-        <div>
-          number: <input value={newNumber} onChange={handleNumberChange}></input>
-        </div>
-        <div>
-          <button type="submit">add</button>
-        </div>
-      </form>
+      <PersonForm 
+      onSubmit={addPerson}
+      nameValue={newName}
+      nameChange={handleNameChange}
+      numberValue = {newNumber}
+      numberChange={handleNumberChange}
+      ></PersonForm>
+  
       <h2>Numbers</h2>
-      <ul>
-        {peopleToShow.map((p) => (
-          <li key={p.name}>{p.name} {p.number}</li>
-        ))}
-      </ul>
+      <Persons persons={persons} newFilter={newFilter} setPersons={setPersons}/>
     </div>
   );
 };
