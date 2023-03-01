@@ -7,7 +7,7 @@ const Country = ({ country }) => {
   const [icon, setIcon] = useState(null);
 
   const api_key = process.env.REACT_APP_API_KEY;
-  //REACT_APP_API_KEY=ca276bbf2c78d356ecd5d375b0c070dd npm start
+
   useEffect(() => {
     axios
       .get(
